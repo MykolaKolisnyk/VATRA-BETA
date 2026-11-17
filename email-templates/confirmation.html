@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>VATRA · Підтвердіть електронну пошту</title>
+</head>
+<body class="vt-email-confirmation-body" style="margin:0;padding:28px 12px;background:#f5f7fc;font-family:Arial,Helvetica,sans-serif;color:#2a3852;">
+  <div class="vt-email-confirmation-preheader" style="display:none!important;opacity:0;visibility:hidden;height:0;max-height:0;overflow:hidden;font-size:1px;line-height:1px;">Вітаємо у VATRA! Підтвердьте електронну пошту, щоб завершити створення акаунта.</div>
+  <table class="vt-email-confirmation-card" role="presentation" width="100%" align="center" cellpadding="0" cellspacing="0" style="width:100%;max-width:570px;margin:0 auto;border:1px solid #e0e7f2;border-radius:20px;border-collapse:separate;background:#ffffff;">
+    <tr><td class="vt-email-confirmation-brand" style="padding:28px 32px 21px;border-bottom:1px solid #eaf0f9;">
+      <span class="vt-email-confirmation-logo" style="display:block;color:#365fbd;font-size:27px;font-weight:800;letter-spacing:.5px;">VATRA</span>
+    </td></tr>
+    <tr><td class="vt-email-confirmation-content" style="padding:28px 32px 6px;">
+      <p class="vt-email-confirmation-eyebrow" style="margin:0 0 12px;color:#5873bf;font-size:11px;font-weight:800;letter-spacing:1.4px;">ВАШІ ЛЮДИ. ВАШІ ІСТОРІЇ. ВАША VATRA.</p>
+      <h1 class="vt-email-confirmation-heading" style="margin:0 0 16px;color:#283952;font-size:26px;font-weight:800;line-height:1.25;">Підтвердіть електронну пошту</h1>
+      <p class="vt-email-confirmation-intro" style="margin:0;color:#617089;font-size:15px;line-height:1.7;">Вітаємо у VATRA! Підтвердьте електронну пошту, щоб завершити створення акаунта.</p>
+      
+    </td></tr>
+    <tr><td class="vt-email-confirmation-action" style="padding:24px 32px 4px;text-align:center;">
+      <table class="vt-email-confirmation-button-table" role="presentation" align="center" cellpadding="0" cellspacing="0" style="margin:0 auto;border-collapse:separate;">
+        <tr><td class="vt-email-confirmation-button-cell" align="center" bgcolor="#3165d9" style="border-radius:12px;">
+          <a class="vt-email-confirmation-button" href="{{ if .Data.vatra_beta_early }}https://vatra.com.co/verify?token_hash={{ .TokenHash }}&amp;type=email{{ else if .RedirectTo }}{{ .RedirectTo }}?token_hash={{ .TokenHash }}&amp;type=email{{ else }}{{ .ConfirmationURL }}{{ end }}" style="display:inline-block;min-width:210px;padding:15px 25px;border-radius:12px;background:#3165d9;color:#ffffff;text-decoration:none;text-align:center;font-size:15px;line-height:1.35;font-weight:700;">Підтвердити пошту</a>
+        </td></tr>
+      </table>
+    </td></tr>
+    <tr><td class="vt-email-confirmation-note-cell" style="padding:23px 32px 30px;">
+      <p class="vt-email-confirmation-note" style="margin:0;color:#75839a;font-size:13px;line-height:1.7;">Якщо Ви не створювали акаунт у VATRA, проігноруйте цей лист.</p>
+    </td></tr>
+    <tr><td class="vt-email-confirmation-footer" style="padding:20px 32px 25px;background:#fbfcff;border-top:1px solid #eaf0f9;border-radius:0 0 20px 20px;">
+      <p class="vt-email-confirmation-copyright" style="margin:0;color:#8b97a9;font-size:11px;line-height:1.7;">© 2026 VATRA · Ваші люди. Ваші історії. Ваша VATRA.</p>
+    </td></tr>
+  </table>
+</body>
+</html>

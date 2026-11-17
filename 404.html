@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="uk">
+  <head>
+    <meta charset="utf-8">
+
+    <script>
+      (()=>{
+        const pathname=location.pathname;
+        const root=location.hostname==="vatra.com.co"?"/":
+          pathname.slice(0,pathname.lastIndexOf("/")+1)||"/";
+        const base=document.createElement("base");
+        base.href=root;
+        document.head.append(base);
+      })();
+    </script>
+    <script src="assets/js/host.js"></script>
+
+    <script src="assets/js/lang.js"></script>
+    <style>html[data-beta-profile-pending] body{visibility:hidden!important}</style>
+    <script>
+      (()=>{
+        const base=new URL(document.baseURI);
+        const relative=location.pathname.startsWith(base.pathname)?
+          location.pathname.slice(base.pathname.length):"";
+        const plain=relative.replace(/\/$/,"");
+        const named={
+          "create-account":"create-account.html",
+          "forgot":"forgot.html",
+          "reset":"reset.html",
+          "verify":"verify.html",
+          "profile":"profile.html"
+        };
+        const documentName=/^id[1-9][0-9]{0,18}$/.test(plain)?
+          "profile.html":named[plain];
+        if(!documentName||window.VATRA_HOST_ALLOWED!==true)return;
+        document.documentElement.setAttribute("data-beta-profile-pending","");
+        fetch(new URL(documentName,base),{credentials:"same-origin"})
+          .then(response=>{
+            if(!response.ok)throw new Error("profile unavailable");
+            return response.text();
+          })
+          .then(html=>{
+            if(!/^\s*<!doctype html>/i.test(html)||!/<head>/i.test(html))
+              throw new Error("invalid profile document");
+            const target=html.replace(/<head>/i,
+              '<head><base href="'+base.href+'">');
+            document.open();
+            document.write(target);
+            document.close();
+          })
+          .catch(()=>{
+            document.documentElement.removeAttribute("data-beta-profile-pending");
+          });
+      })();
+    </script>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="theme-color" content="#edf2ff">
+    <meta name="color-scheme" content="light">
+    <meta name="robots" content="noindex,follow">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
+    <meta name="description" content="За цією адресою немає сторінки VATRA. Можливо, посилання неправильне або сторінку переміщено.">
+    <title>404 Сторінку не знайдено · VATRA</title>
+    <link rel="icon" type="image/svg+xml" href="assets/logo/vatra-app-icon.svg">
+    <link rel="apple-touch-icon" href="assets/logo/vatra-app-icon.png">
+    <link rel="preload" href="assets/fonts/Onest-Variable.ttf" as="font" type="font/ttf" crossorigin>
+    <link rel="stylesheet" href="assets/css/base.css">
+    <link rel="stylesheet" href="assets/css/not-found.css">
+    <link rel="manifest" href="site.webmanifest">
+
+  </head>
+  <body data-page="not-found" class="account-page error-page ui-404-body-001">
+    <main class="account-main error-main ui-404-main-001" aria-labelledby="error-heading">
+      <div class="error-content ui-404-content-001">
+        <h1 id="error-heading" class="sr-only vt-404-accessible-title-001" data-i18n="n8">Сторінку не знайдено</h1>
+        <img class="ui-404-vatryk-001" src="assets/vatryk/vatryk-404.png" width="540" height="540" alt="Ватрик — ілюстрація до помилки 404" decoding="async" fetchpriority="high">
+        <a href="./" class="error-home-link vt-404-link-002" data-i18n="n4">На головну</a>
+      </div>
+    </main>
+  </body>
+</html>
