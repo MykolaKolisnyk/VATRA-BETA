@@ -1,0 +1,24 @@
+.account-page .footer{padding-inline:0}
+.account-page .auth-footer-content{width:min(calc(100% - 88px),1300px)}.account-page{min-height:100dvh;display:flex;flex-direction:column;background:#f7f9fd}.account-top{display:flex;align-items:center;padding:24px 0;border-bottom:1px solid var(--line);background:white}
+.account-top-inner{width:min(calc(100% - 88px),1300px);display:flex;align-items:center;justify-content:space-between;gap:16px;margin:0 auto;min-width:0}.account-top .header-logo{width:165px}
+@media (max-width:1199px){
+  .account-top{padding:17px 0}
+.account-page .auth-footer-content,
+.account-top-inner{width:min(calc(100% - 40px),670px)}}
+@media (max-width:540px){
+  .account-top{padding:14px 0}
+.account-page .auth-footer-content,
+.account-top-inner{width:calc(100% - 24px)}
+  .account-top .header-logo{width:136px}}
+
+@media(max-width:600px){
+ .account-page[data-page="verify"] .account-top{padding:12px 0}
+ .account-page[data-page="verify"] .account-top-inner{width:calc(100% - 28px);gap:10px}
+ .account-page[data-page="verify"] .account-top .header-logo{width:122px}
+ .account-page[data-page="verify"] .account-main{padding:20px 12px;align-items:center}
+ .account-page[data-page="verify"] .account-card{width:min(100%,440px);padding:25px 18px;border-radius:18px}
+ .account-page[data-page="verify"] .account-card>img{width:72px;margin-bottom:12px}
+ .account-page[data-page="verify"] .account-card h1{font-size:25px;line-height:1.25;overflow-wrap:anywhere}
+ .account-page[data-page="verify"] .account-card p{font-size:13px;line-height:1.55}
+ .account-page[data-page="verify"] .account-card .action{min-height:48px;padding:11px 16px;max-width:100%}
+}

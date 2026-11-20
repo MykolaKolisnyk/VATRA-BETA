@@ -1,0 +1,732 @@
+(()=>{
+ "use strict";
+ if(window.VATRA_HOST_ALLOWED===false)return;
+ const language=()=>window.VATRA_LANGUAGE?.locale||document.documentElement.lang||"uk";
+ const tr=(uk,english)=>{
+  const locale=language();
+  if(locale==="uk")return uk;
+  if(locale==="en")return english;
+  const translated=window.VATRA_LANGUAGE?.translate?.(uk);
+  return typeof translated==="string"&&translated!==uk?translated:uk;
+ };
+ const formats={
+  "image/jpeg":{kind:"image",ext:"jpg",bucket:"post-images",limit:6291456},
+  "image/png":{kind:"image",ext:"png",bucket:"post-images",limit:6291456},
+  "image/webp":{kind:"image",ext:"webp",bucket:"post-images",limit:6291456},
+  "video/mp4":{kind:"video",ext:"mp4",bucket:"videos",limit:52428800},
+  "video/webm":{kind:"video",ext:"webm",bucket:"videos",limit:52428800}
+ };
+ const validId=id=>/^[1-9][0-9]{0,18}$/.test(String(id||""));
+ const formatFor=file=>{
+  const info=formats[file?.type];
+  if(!info||!file?.size)throw Error(tr("Виберіть JPEG, PNG, WebP, MP4 або WebM.","Choose JPEG, PNG, WebP, MP4 or WebM."));
+  if(file.size>info.limit)throw Error(info.kind==="image"?
+   tr("Фото має бути до 6 МБ.","Photo must be under 6 MB."):
+   tr("Відео має бути до 50 МБ.","Video must be under 50 MB."));
+  return info;
+ };
+ const name=(path,kind,id)=>{
+  const ext=kind==="image"?"(?:jpg|png|webp)":"(?:mp4|webm)";
+  return validId(id)&&typeof path==="string"&&
+   new RegExp("^"+id+"/posts/[a-f0-9-]{36}\\."+ext+"$").test(path);
+ };
+ const bucketFor=kind=>kind==="image"?"post-images":"videos";
+ const storyPathValid=(path,kind,id)=>{
+  if(!validId(id)||typeof path!=="string"||!["image","video"].includes(kind))return false;
+  const extension=kind==="image"?"(?:jpg|png|webp)":"(?:mp4|webm)";
+  return new RegExp("^"+id+"/stories/[0-9a-f-]{36}\\."+extension+"$").test(path);
+ };
+
+ 
+ function linkifyHashtags(paragraph){
+  if(!paragraph||typeof paragraph.textContent!=="string")return;
+  const original=paragraph.textContent;
+  if(!original.includes("#"))return;
+  const expression=/(^|[^\p{L}\p{N}_])#([\p{L}\p{N}_]{1,64})/gu;
+  const result=document.createDocumentFragment();
+  let offset=0,found=false,match;
+  while((match=expression.exec(original))!==null){
+   const start=match.index+match[1].length;
+   result.append(document.createTextNode(original.slice(offset,start)));
+   const tag="#"+match[2];
+   const link=document.createElement("span");
+   link.className="vt-feed-post-hashtag-001";
+   link.textContent=tag;
+   result.append(link);
+   offset=start+tag.length;
+   found=true;
+  }
+  if(found){
+   result.append(document.createTextNode(original.slice(offset)));
+   paragraph.replaceChildren(result);
+  }
+ }
+
+ const GALLERY_LIMIT=12,VIDEO_LIMIT=4,TOTAL_LIMIT=160*1024*1024;
+ function validateGallery(files){
+  if(files.length>GALLERY_LIMIT)throw Error(tr("До 12 фото та відео в одному дописі.","Up to 12 media files per post."));
+  if(files.filter(file=>formatFor(file).kind==="video").length>VIDEO_LIMIT)
+   throw Error(tr("В одному дописі можна додати не більше 4 відео.","Up to 4 videos per post."));
+  if(files.reduce((sum,file)=>sum+file.size,0)>TOTAL_LIMIT)
+   throw Error(tr("Загальний розмір медіа має бути до 160 МБ.","Media total must be under 160 MB."));
+  files.forEach(formatFor);
+  return files;
+ }
+ function bindGalleryPicker(ids){
+  const input=document.querySelector(ids.input),choose=document.querySelector(ids.choose);
+  const clear=document.querySelector(ids.clear),preview=document.querySelector(ids.preview);
+  const showError=typeof ids.onError==="function"?ids.onError:()=>{};
+  const changed=typeof ids.onChange==="function"?ids.onChange:()=>{};
+  if(!input||!choose||!clear||!preview)throw Error("Gallery picker markup is incomplete");
+  input.multiple=true;
+  let selected=[],urls=[];
+  const release=()=>{urls.forEach(url=>URL.revokeObjectURL(url));urls=[];};
+  function display(){
+   release();preview.replaceChildren();
+   clear.hidden=!selected.length;preview.hidden=!selected.length;
+   if(selected.length){
+    const count=document.createElement("p");count.className="vt-vatra-gallery-selection-count-001";
+    count.textContent=selected.length+" / "+GALLERY_LIMIT+" · "+
+     selected.filter(file=>formats[file.type]?.kind==="video").length+" "+tr("відео","videos");
+    preview.append(count);
+   }
+   const grid=document.createElement("div");grid.className="vatra-gallery-picker-grid ui-vatra-gallery-picker-grid-001";
+   selected.forEach((file,index)=>{
+    const tile=document.createElement("div");tile.className="vatra-gallery-picker-tile ui-vatra-gallery-picker-tile-"+index;
+    const url=URL.createObjectURL(file);urls.push(url);
+    const media=document.createElement(formats[file.type].kind==="video"?"video":"img");
+    media.className="ui-vatra-gallery-picker-media-"+index;media.src=url;
+    if(media.tagName==="VIDEO"){media.preload="metadata";media.muted=true;media.playsInline=true;}
+    else media.alt=tr("Фото для публікації","Selected post photo");
+    const remove=document.createElement("button");remove.type="button";
+    remove.className="vt-vatra-gallery-picker-remove-"+index;
+    remove.setAttribute("aria-label",tr("Прибрати файл ","Remove file ")+file.name);
+    const icon=document.createElementNS("http://www.w3.org/2000/svg","svg");
+    icon.setAttribute("class","ui-vatra-gallery-picker-remove-icon-"+index);
+    icon.setAttribute("viewBox","0 0 24 24");icon.setAttribute("width","16");icon.setAttribute("height","16");
+    icon.setAttribute("fill","none");icon.setAttribute("stroke","currentColor");
+    icon.setAttribute("stroke-width","1.8");icon.setAttribute("aria-hidden","true");
+    const iconPath=document.createElementNS("http://www.w3.org/2000/svg","path");
+    iconPath.setAttribute("class","ui-vatra-gallery-picker-remove-path-"+index);
+    iconPath.setAttribute("d","M6 6l12 12M18 6 6 18");
+    icon.append(iconPath);remove.append(icon);
+    remove.addEventListener("click",()=>{
+     selected.splice(index,1);display();changed();
+    });
+    const label=document.createElement("small");label.className="vt-vatra-gallery-picker-name-"+index;
+    label.textContent=file.name;
+    tile.append(media,remove,label);grid.append(tile);
+   });
+   preview.append(grid);
+  }
+  const reset=()=>{selected=[];input.value="";display();changed();};
+  choose.addEventListener("click",()=>input.click());
+  input.addEventListener("change",()=>{
+   try{
+    const incoming=Array.from(input.files||[]);
+    validateGallery([...selected,...incoming]);
+    selected=[...selected,...incoming];showError("");display();changed();
+   }catch(error){showError(error.message);}
+   input.value="";
+  });
+  clear.addEventListener("click",reset);
+  return {getFiles:()=>[...selected],getFile:()=>selected[0]||null,reset};
+ }
+ async function removeGallery(client,items){
+  const imagePaths=[],videoPaths=[];
+  for(const item of items||[]){
+   if(!item||!["image","video"].includes(item.media_kind)||!item.media_path)continue;
+   if(item.media_kind==="image"){
+    imagePaths.push(item.media_path);
+    if(typeof item.preview_path==="string"&&item.preview_path!==item.media_path)
+     imagePaths.push(item.preview_path);
+   }else videoPaths.push(item.media_path);
+  }
+  await Promise.allSettled([
+   imagePaths.length?client.storage.from("post-images").remove(imagePaths):Promise.resolve(),
+   videoPaths.length?client.storage.from("videos").remove(videoPaths):Promise.resolve()
+  ]);
+ }
+ async function uploadGallery(client,id,files){
+  validateGallery(files);
+  const uploaded=[];
+  try{
+   for(let offset=0;offset<files.length;offset+=2){
+    const batch=files.slice(offset,offset+2);
+    const results=await Promise.allSettled(batch.map(file=>upload(client,id,file)));
+    for(const result of results)if(result.status==="fulfilled")uploaded.push(result.value);
+    const failure=results.find(result=>result.status==="rejected");
+    if(failure)throw failure.reason;
+   }
+   return uploaded;
+  }catch(error){
+   await removeGallery(client,uploaded);
+   throw error;
+  }
+ }
+ function bindPicker(ids){
+  const input=document.querySelector(ids.input),choose=document.querySelector(ids.choose);
+  const clear=document.querySelector(ids.clear),preview=document.querySelector(ids.preview);
+  const showError=typeof ids.onError==="function"?ids.onError:()=>{};
+  const changed=typeof ids.onChange==="function"?ids.onChange:()=>{};
+  if(!input||!choose||!clear||!preview)throw Error("VATRA media picker markup is incomplete");
+  let selected=null,blob=null;
+  const reset=()=>{
+   selected=null;input.value="";
+   if(blob){URL.revokeObjectURL(blob);blob=null;}
+   preview.replaceChildren();preview.hidden=true;clear.hidden=true;changed();
+  };
+  const render=file=>{
+   reset();if(!file)return;
+   try{formatFor(file);}catch(error){showError(error.message);return;}
+   selected=file;blob=URL.createObjectURL(file);
+   const info=formats[file.type];
+   const media=document.createElement(info.kind==="image"?"img":"video");
+   media.className=info.kind==="image"?"vatra-compose-preview-image":"vatra-compose-preview-video";
+   media.src=blob;
+   if(info.kind==="video"){media.controls=true;media.preload="metadata";}
+   else media.alt=tr("Попередній перегляд фото","Photo preview");
+   const caption=document.createElement("span");caption.className="vatra-compose-preview-caption";
+   caption.textContent=file.name;
+   preview.append(media,caption);preview.hidden=false;clear.hidden=false;changed();
+  };
+  choose.addEventListener("click",()=>input.click());
+  input.addEventListener("change",()=>render(input.files?.[0]));
+  clear.addEventListener("click",reset);
+  return {getFile:()=>selected,reset};
+ }
+ async function makeImagePreview(file){
+  // Small files should not incur a second Storage object or extra encoding work.
+  if(!file||file.size<256*1024)return null;
+  let image=null,release=()=>{};
+  try{
+   if(typeof createImageBitmap==="function"){
+    try{
+     image=await createImageBitmap(file);
+     if(!image?.width||!image?.height){image?.close?.();image=null;}
+     else release=()=>image.close?.();
+    }catch(_){/* Fallback to <img> for browsers without reliable bitmap decoding. */}
+   }
+   if(!image){
+    if(typeof Image!=="function"||typeof URL==="undefined"||
+       typeof URL.createObjectURL!=="function")return null;
+    const objectURL=URL.createObjectURL(file),fallback=new Image();
+    try{
+     if(typeof fallback.decode==="function"){
+      fallback.src=objectURL;
+      await fallback.decode();
+     }else{
+      await new Promise((resolve,reject)=>{
+       fallback.onload=resolve;fallback.onerror=reject;fallback.src=objectURL;
+      });
+     }
+     image=fallback;release=()=>URL.revokeObjectURL(objectURL);
+    }catch(_){URL.revokeObjectURL(objectURL);return null;}
+   }
+   const width=image.naturalWidth||image.width,height=image.naturalHeight||image.height;
+   if(!width||!height)return null;
+   // Try progressively smaller previews when complex photographs exceed 400 KiB.
+   // Preserve the original unchanged for full-size viewing.
+   for(const [longEdge,quality] of [[960,0.75],[768,0.66],[640,0.58],[480,0.5]]){
+    const scale=Math.min(1,longEdge/Math.max(width,height));
+    const canvas=document.createElement("canvas");
+    canvas.width=Math.max(1,Math.round(width*scale));
+    canvas.height=Math.max(1,Math.round(height*scale));
+    const context=canvas.getContext("2d");
+    if(!context)return null;
+    context.drawImage(image,0,0,canvas.width,canvas.height);
+    let blob;
+    try{blob=await new Promise(resolve=>canvas.toBlob(resolve,"image/webp",quality));}
+    catch(_){continue;}
+    if(blob?.type==="image/webp"&&blob.size<=400*1024&&blob.size<file.size*0.8)
+     return blob;
+   }
+   return null;
+  }catch(_){return null;}
+  finally{release();}
+ }
+ async function upload(client,id,file){
+  const format=formatFor(file);
+  if(!validId(id))throw Error(tr("VATRA ID недоступний.","VATRA ID unavailable."));
+  const path=id+"/posts/"+crypto.randomUUID()+"."+format.ext;
+  const previewJob=format.kind==="image"?makeImagePreview(file):Promise.resolve(null);
+  const {error}=await client.storage.from(format.bucket).upload(path,file,{
+   contentType:file.type,cacheControl:"3600",upsert:false
+  });
+  if(error)throw Error(tr("Не вдалося завантажити файл. Спробуйте знову.","Could not upload media. Try again."));
+  const item={media_kind:format.kind,media_path:path};
+  const preview=await previewJob;
+  if(preview){
+   const previewPath=id+"/posts/"+crypto.randomUUID()+".webp";
+   try{
+    const {error:previewError}=await client.storage.from("post-images").upload(previewPath,preview,{
+     contentType:"image/webp",cacheControl:"3600",upsert:false
+    });
+    if(!previewError)item.preview_path=previewPath;
+   }catch(_){}
+  }
+  return item;
+ }
+ async function uploadStory(client,id,file){
+  const format=formatFor(file);
+  if(!validId(id))throw Error(tr("VATRA ID недоступний.","VATRA ID unavailable."));
+  const path=id+"/stories/"+crypto.randomUUID()+"."+format.ext;
+  const {error}=await client.storage.from(format.bucket).upload(path,file,{
+   contentType:file.type,cacheControl:"300",upsert:false
+  });
+  if(error)throw Error(tr("Не вдалося завантажити медіа історії.","Could not upload story media."));
+  return {media_kind:format.kind,media_path:path};
+ }
+ async function remove(client,attachment){
+  if(!attachment?.media_kind||!attachment?.media_path)return;
+  const bucket=bucketFor(attachment.media_kind);
+  return client.storage.from(bucket).remove([attachment.media_path]);
+ }
+
+ const signedURLCaches=new WeakMap();
+ function signedCacheFor(client){
+  let state=signedURLCaches.get(client);
+  if(state)return state;
+  state={signedURLs:new Map(),version:0};
+  signedURLCaches.set(client,state);
+  if(typeof client.auth?.onAuthStateChange==="function"){
+   client.auth.onAuthStateChange(event=>{
+    if(event==="INITIAL_SESSION")return;
+    state.version++;
+    state.signedURLs.clear();
+   });
+  }
+  return state;
+ }
+ const trimSignedCache=signedURLs=>{
+  const now=Date.now();
+  for(const [key,entry] of signedURLs)
+   if(entry.expiry<=now)signedURLs.delete(key);
+  while(signedURLs.size>256)signedURLs.delete(signedURLs.keys().next().value);
+ };
+ let firstImages=0;
+ async function preSignGallery(client,items,ttl=3600){
+  const state=signedCacheFor(client),signedURLs=state.signedURLs;
+  const version=state.version,grouped=new Map();
+  for(const item of items||[]){
+   const kind=item?.media_kind,path=item?.media_path;
+   if(!["image","video"].includes(kind)||typeof path!=="string")continue;
+   const key=ttl+":"+kind+":"+path;
+   if(signedURLs.get(key)?.expiry>Date.now())continue;
+   if(!grouped.has(kind))grouped.set(kind,new Set());
+   grouped.get(kind).add(path);
+  }
+  await Promise.allSettled([...grouped].map(async([kind,pathSet])=>{
+   const paths=[...pathSet],bucket=client.storage.from(bucketFor(kind));
+   if(typeof bucket.createSignedUrls!=="function")return;
+   const {data,error}=await bucket.createSignedUrls(paths,ttl);
+   if(error||!Array.isArray(data)||state.version!==version)return;
+   for(let i=0;i<paths.length;i++){
+    const item=data[i];
+    if(!item?.signedUrl||item.error||(item.path&&item.path!==paths[i]))continue;
+    try{
+     const url=new URL(item.signedUrl,location.origin);
+     if(url.protocol!=="https:"||url.hostname!=="cxrcycxrlkufozomsxcs.supabase.co")continue;
+     signedURLs.set(ttl+":"+kind+":"+paths[i],{
+      expiry:Date.now()+Math.max(0,ttl-30)*1000,promise:Promise.resolve(url.href)
+     });
+    }catch(_){}
+   }
+  }));
+  trimSignedCache(signedURLs);
+ }
+ async function signed(client,kind,path,ttl=3600){
+  const state=signedCacheFor(client),signedURLs=state.signedURLs;
+  const version=state.version,key=ttl+":"+kind+":"+path;
+  const entry=signedURLs.get(key);
+  if(entry&&entry.expiry>Date.now())return entry.promise;
+  const promise=client.storage.from(bucketFor(kind)).createSignedUrl(path,ttl).then(({data,error})=>{
+   if(state.version!==version)throw Error("Session changed while signing media");
+   if(error||!data?.signedUrl)throw error||new Error("Missing signed URL");
+   const url=new URL(data.signedUrl);
+   if(url.protocol!=="https:"||url.hostname!=="cxrcycxrlkufozomsxcs.supabase.co")
+    throw Error("Unexpected signed asset URL");
+   return url.href;
+  }).catch(error=>{
+   if(signedURLs.get(key)?.promise===promise)signedURLs.delete(key);
+   throw error;
+  });
+  signedURLs.set(key,{expiry:Date.now()+Math.max(0,ttl-30)*1000,promise});
+  trimSignedCache(signedURLs);
+  return promise;
+ }
+ async function renderStory(client,story,slot,preview=false,allowExpired=false){
+  if(!slot)return;
+  const request=String(Number(slot.dataset.storyRequest||"0")+1);
+  slot.dataset.storyRequest=request;
+  slot.replaceChildren();slot.hidden=true;
+  const {media_kind:kind,media_path:path,author_vatra_id:id}=story||{};
+  if(!storyPathValid(path,kind,id))return;
+  if(!allowExpired&&story.expires_at&&Date.parse(story.expires_at)<=Date.now())return;
+  slot.hidden=false;
+  if(!preview)slot.textContent=tr("Завантаження медіа…","Loading media…");
+  try{
+   const src=await signed(client,kind,path,300);
+   if(!slot.isConnected||slot.dataset.storyRequest!==request)return;
+   const element=document.createElement(kind==="image"?"img":"video");
+   element.className=preview?"vt-story-media-preview-001":"vt-story-media-expanded-001";
+   element.src=src;
+   if(kind==="image"){
+    element.alt=tr("Медіа історії","Story photo");
+    element.decoding="async";
+   }else{
+    element.playsInline=true;element.preload="metadata";
+    element.controls=!preview;
+    element.muted=preview;
+    if(preview)element.setAttribute("aria-hidden","true");
+   }
+   slot.replaceChildren(element);
+  }catch(_){
+   if(!slot.isConnected||slot.dataset.storyRequest!==request)return;
+   if(preview){slot.hidden=true;slot.replaceChildren();}
+   else slot.textContent=tr("Медіафайл історії недоступний.","Story media is unavailable.");
+  }
+ }
+ function collapsibleBody(paragraph){
+  if(!paragraph||paragraph.dataset.vatraCollapsed)return;
+  const full=paragraph.textContent||"";
+  if(Array.from(full).length<=440)return;
+  const compact=Array.from(full).slice(0,350).join("").trimEnd()+"…";
+  const button=document.createElement("button");
+  button.type="button";button.className="vt-feed-post-read-more-001";
+  button.setAttribute("aria-expanded","false");
+  button.textContent=tr("Показати більше","Show more");
+  paragraph.dataset.vatraCollapsed="true";
+  let expanded=false;
+  const update=()=>{
+   paragraph.textContent=expanded?full:compact;
+   linkifyHashtags(paragraph);
+   button.textContent=expanded?tr("Показати менше","Show less"):tr("Показати більше","Show more");
+   button.setAttribute("aria-expanded",String(expanded));
+  };
+  button.addEventListener("click",()=>{expanded=!expanded;update();});
+  paragraph.insertAdjacentElement("afterend",button);
+  update();
+ }
+ 
+ let mediaDialog=null,mediaDialogContent=null;
+ function openFullMedia(url,kind){
+  if(!mediaDialog){
+   mediaDialog=document.createElement("dialog");
+   mediaDialog.id="vatra-post-media-viewer";
+   mediaDialog.className="vatra-post-media-viewer ui-vatra-post-media-viewer-001";
+   mediaDialog.setAttribute("aria-label",tr("Перегляд медіа","Media viewer"));
+   const frame=document.createElement("div");
+   frame.className="vatra-post-media-viewer-frame ui-vatra-post-media-viewer-frame-001";
+   const close=document.createElement("button");
+   close.className="vt-vatra-post-media-close-001";close.type="button";
+   close.setAttribute("aria-label",tr("Закрити","Close"));
+   const closeIcon=document.createElementNS("http://www.w3.org/2000/svg","svg");
+   closeIcon.setAttribute("class","ui-vatra-post-media-close-icon-001");
+   closeIcon.setAttribute("viewBox","0 0 24 24");closeIcon.setAttribute("width","21");
+   closeIcon.setAttribute("height","21");closeIcon.setAttribute("fill","none");
+   closeIcon.setAttribute("stroke","currentColor");closeIcon.setAttribute("stroke-width","1.8");
+   closeIcon.setAttribute("stroke-linecap","round");
+   const cross=document.createElementNS("http://www.w3.org/2000/svg","path");
+   cross.setAttribute("class","ui-vatra-post-media-close-path-001");
+   cross.setAttribute("d","M6 6l12 12M18 6 6 18");
+   closeIcon.append(cross);close.append(closeIcon);
+   close.addEventListener("click",()=>mediaDialog.close());
+   mediaDialogContent=document.createElement("div");
+   mediaDialogContent.className="ui-vatra-post-media-viewer-content-001";
+   frame.append(close,mediaDialogContent);mediaDialog.append(frame);
+   mediaDialog.addEventListener("click",event=>{if(event.target===mediaDialog)mediaDialog.close();});
+   mediaDialog.addEventListener("close",()=>{
+    const video=mediaDialogContent.querySelector("video");
+    if(video){video.pause();video.removeAttribute("src");video.load();}
+    mediaDialogContent.replaceChildren();
+   });
+   document.body.append(mediaDialog);
+  }
+  const element=document.createElement(kind==="video"?"video":"img");
+  element.className=kind==="video"?"ui-vatra-post-expanded-video-001":"ui-vatra-post-expanded-image-001";
+  if(kind==="video"){element.controls=true;element.autoplay=true;element.playsInline=true;}
+  else element.alt=tr("Фото публікації","Post photo");
+  element.src=url;mediaDialogContent.replaceChildren(element);
+  mediaDialog.showModal();
+ }
+
+ function loadImageSource(image,src){
+  return new Promise((resolve,reject)=>{
+   let done=false;
+   const finish=success=>{
+    if(done)return;done=true;
+    clearTimeout(timer);
+    image.removeEventListener("load",loaded);
+    image.removeEventListener("error",failed);
+    if(success)resolve();else reject(Error("Image unavailable"));
+   };
+   const loaded=()=>finish(image.naturalWidth>0);
+   const failed=()=>finish(false);
+   const timer=setTimeout(failed,15000);
+   image.addEventListener("load",loaded,{once:true});
+   image.addEventListener("error",failed,{once:true});
+   image.src=src;
+   if(image.complete)loaded();
+  });
+ }
+ async function mountGallery(client,post,container){
+  const id=post.author_vatra_id;
+  const media=Array.isArray(post.media_items)?post.media_items.slice(0,GALLERY_LIMIT).filter(item=>
+   item&&["image","video"].includes(item.media_kind)&&name(item.media_path,item.media_kind,id)):[];
+  if(!media.length)return false;
+  const slot=document.createElement("div");
+  slot.className="feed-post-media vatra-post-gallery ui-vatra-post-gallery-001";
+  slot.dataset.layout=String(media.length>=5?5:media.length);
+  slot.setAttribute("aria-label",tr("Медіагалерея публікації","Post media gallery"));
+  const previews=media.slice(0,5);
+  const tiles=previews.map((item,index)=>{
+   const tile=document.createElement("button");
+   tile.className="vatra-post-gallery-tile vt-vatra-post-gallery-tile-"+index;
+   tile.type="button";
+   tile.setAttribute("aria-label",tr("Відкрити файл ","Open media ")+(index+1));
+   tile.dataset.kind=item.media_kind;
+   const skeleton=document.createElement("span");
+   skeleton.className="ui-vatra-post-gallery-skeleton-"+index;
+   skeleton.setAttribute("aria-hidden","true");
+   tile.append(skeleton);
+   if(item.media_kind==="video"){
+    const badge=document.createElementNS("http://www.w3.org/2000/svg","svg");
+    badge.setAttribute("class","ui-vatra-post-gallery-play-"+index);
+    badge.setAttribute("viewBox","0 0 24 24");
+    badge.setAttribute("fill","currentColor");badge.setAttribute("aria-hidden","true");
+    const play=document.createElementNS("http://www.w3.org/2000/svg","path");
+    play.setAttribute("class","ui-vatra-post-gallery-play-path-"+index);
+    play.setAttribute("d","M9 5v14l11-7Z");badge.append(play);tile.append(badge);
+   }
+   if(index===4&&media.length>5){
+    const extra=document.createElement("span");extra.className="vt-vatra-post-gallery-extra-001";
+    extra.textContent="+"+(media.length-5);tile.append(extra);
+   }
+   tile.addEventListener("click",()=>void openGallery(index));
+   slot.append(tile);
+   return {item,tile,index};
+  });
+  container.append(slot);
+  const priority=++firstImages;
+  let begun=false;
+  async function loadTiles(){
+   if(begun||!slot.isConnected)return;
+   begun=true;
+   const previewPath=item=>item.media_kind==="image"&&
+    name(item.preview_path,"image",id)&&item.preview_path.endsWith(".webp")?
+    item.preview_path:null;
+   await preSignGallery(client,tiles.filter(({item})=>item.media_kind==="image").map(({item})=>({
+    media_kind:"image",media_path:previewPath(item)||item.media_path
+   })));
+   await Promise.allSettled(tiles.map(async({item,tile,index})=>{
+    try{
+     if(item.media_kind==="video"){
+      tile.classList.add("is-gallery-ready");
+      tile.querySelector('[class^="ui-vatra-post-gallery-skeleton-"]')?.remove();
+      return;
+     }
+     const preview=previewPath(item);
+     let element=null;
+     for(const path of preview?[preview,item.media_path]:[item.media_path]){
+      try{
+       const src=await signed(client,"image",path);
+       if(!tile.isConnected)return;
+       const candidate=document.createElement("img");
+       candidate.className="ui-vatra-post-gallery-media-"+index;
+       candidate.alt=tr("Фото публікації","Post photo");
+       candidate.loading="eager";
+       candidate.decoding="async";
+       if(priority<=2)candidate.fetchPriority="high";
+       candidate.classList.add("is-gallery-pending");
+       tile.prepend(candidate);
+       try{await loadImageSource(candidate,src);}
+       catch(error){candidate.remove();throw error;}
+       candidate.classList.remove("is-gallery-pending");
+       element=candidate;break;
+      }catch(_){}
+     }
+     if(!element)throw Error("Image unavailable");
+     if(!tile.isConnected)return;
+     if(index===0){
+      const width=element.naturalWidth,height=element.naturalHeight;
+      if(width&&height)slot.dataset.orientation=width>height*1.25?"wide":"portrait";
+     }
+     tile.classList.remove("is-gallery-unavailable");
+     tile.classList.add("is-gallery-ready");
+     tile.querySelector('[class^="ui-vatra-post-gallery-skeleton-"]')?.remove();
+    }catch(_){
+     if(!tile.isConnected)return;
+     tile.classList.add("is-gallery-unavailable");
+     tile.querySelector('[class^="ui-vatra-post-gallery-skeleton-"]')?.remove();
+     const notice=document.createElement("span");
+     notice.className="vt-beta-gallery-unavailable-001";
+     notice.textContent=tr("Не вдалося завантажити фото. Натисніть, щоб відкрити.","Could not load photo. Tap to open.");
+     tile.append(notice);
+    }
+   }));
+  }
+  queueMicrotask(()=>{
+   if(!slot.isConnected)return;
+   if(priority<=2||typeof IntersectionObserver==="undefined"){void loadTiles();return;}
+   const observer=new IntersectionObserver(entries=>{
+    if(entries.some(entry=>entry.isIntersecting||entry.intersectionRatio>0)){
+     observer.disconnect();void loadTiles();
+    }
+   },{rootMargin:"440px 0px",threshold:0});
+   observer.observe(slot);
+  });
+  async function openGallery(startIndex){
+   let index=startIndex,active=true;
+   const current=media[index];
+   try{
+    const initial=await signed(client,current.media_kind,current.media_path);
+    if(!slot.isConnected)return;
+    openFullMedia(initial,current.media_kind);
+   }catch(_){return;}
+   const controller=new AbortController();
+   mediaDialog.addEventListener("close",()=>{active=false;controller.abort();},{once:true});
+   const makeNav=(dir,label)=>{
+    const button=document.createElement("button");button.type="button";
+    button.className="vt-vatra-post-gallery-nav-"+(dir<0?"prev":"next");
+    button.setAttribute("aria-label",label);
+    const svg=document.createElementNS("http://www.w3.org/2000/svg","svg");
+    svg.setAttribute("class","ui-vatra-post-gallery-nav-icon-"+(dir<0?"prev":"next"));
+    svg.setAttribute("viewBox","0 0 24 24");svg.setAttribute("width","22");svg.setAttribute("height","22");
+    svg.setAttribute("fill","none");svg.setAttribute("stroke","currentColor");
+    svg.setAttribute("stroke-width","2");svg.setAttribute("stroke-linecap","round");
+    const path=document.createElementNS("http://www.w3.org/2000/svg","path");
+    path.setAttribute("class","ui-vatra-post-gallery-nav-path-"+(dir<0?"prev":"next"));
+    path.setAttribute("d",dir<0?"m15 5-7 7 7 7":"m9 5 7 7-7 7");
+    svg.append(path);button.append(svg);return button;
+   };
+   let renderTicket=0;
+   const render=async()=>{
+    const token=++renderTicket,item=media[index];
+    try{
+     const url=await signed(client,item.media_kind,item.media_path);
+     if(!active||token!==renderTicket||!mediaDialog.open)return;
+     const element=document.createElement(item.media_kind==="video"?"video":"img");
+     element.className=item.media_kind==="video"?"ui-vatra-post-expanded-video-001":"ui-vatra-post-expanded-image-001";
+     if(item.media_kind==="video"){element.controls=true;element.playsInline=true;}
+     else element.alt=tr("Фото публікації","Post photo");
+     element.src=url;
+     const prev=makeNav(-1,tr("Попередній файл","Previous media"));
+     const next=makeNav(1,tr("Наступний файл","Next media"));
+     const counter=document.createElement("span");
+     counter.className="vt-vatra-post-gallery-counter-001";
+     counter.textContent=(index+1)+" / "+media.length;
+     prev.disabled=index===0;next.disabled=index===media.length-1;
+     prev.addEventListener("click",()=>{if(index>0){index--;void render();}});
+     next.addEventListener("click",()=>{if(index<media.length-1){index++;void render();}});
+     const currentVideo=mediaDialogContent.querySelector("video");
+     currentVideo?.pause();
+     mediaDialogContent.replaceChildren(element,prev,next,counter);
+    }catch(_){}
+   };
+   mediaDialog.addEventListener("keydown",event=>{
+    if(event.key==="ArrowLeft"&&index>0){event.preventDefault();index--;void render();}
+    if(event.key==="ArrowRight"&&index<media.length-1){event.preventDefault();index++;void render();}
+   },{signal:controller.signal});
+   void render();
+  }
+  return true;
+ }
+ async function mount(client,post,container){
+  if(Array.isArray(post?.media_items)&&post.media_items.length){
+   await mountGallery(client,post,container);return;
+  }
+  const kind=post?.media_kind,path=post?.media_path,id=post?.author_vatra_id;
+  if(!["image","video"].includes(kind)||!name(path,kind,id)||!container)return;
+  const slot=document.createElement("div");
+  slot.className="feed-post-media ui-feed-post-media-001 is-loading-media";
+  const placeholder=document.createElement("span");
+  placeholder.className="vatra-post-media-placeholder ui-vatra-post-media-placeholder-001";
+  placeholder.setAttribute("aria-hidden","true");
+  slot.append(placeholder);container.append(slot);
+  if(kind==="video"){
+   const play=document.createElement("button");
+   play.className="vt-feed-post-video-play-001";
+   play.type="button";
+   const symbol=document.createElementNS("http://www.w3.org/2000/svg","svg");
+   symbol.setAttribute("class","ui-feed-post-video-play-icon-001");
+   symbol.setAttribute("viewBox","0 0 24 24");
+   symbol.setAttribute("fill","currentColor");
+   symbol.setAttribute("aria-hidden","true");
+   const shape=document.createElementNS("http://www.w3.org/2000/svg","path");
+   shape.setAttribute("class","ui-feed-post-video-play-shape-001");
+   shape.setAttribute("d","M8 5v14l11-7Z");
+   symbol.append(shape);
+   const label=document.createElement("span");
+   label.className="vt-feed-post-video-play-label-001";
+   label.textContent=tr("Відтворити відео","Play video");
+   play.append(symbol,label);
+   let pending=false;
+   play.addEventListener("click",async()=>{
+    if(pending)return;
+    pending=true;play.disabled=true;
+    label.textContent=tr("Завантаження відео…","Loading video…");
+    try{
+     const src=await signed(client,"video",path);
+     if(!slot.isConnected)return;
+     const video=document.createElement("video");
+     video.className="feed-post-media-video ui-feed-post-media-video-001";
+     video.controls=true;video.preload="metadata";video.playsInline=true;
+     const expand=document.createElement("button");expand.type="button";
+     expand.className="vt-feed-post-video-expand-001";
+     expand.textContent=tr("На весь екран","Fullscreen");
+     expand.addEventListener("click",()=>{video.pause();openFullMedia(src,"video");});
+     video.src=src;
+     slot.replaceChildren(video,expand);
+     void video.play().catch(()=>{});
+    }catch(_){
+     if(!slot.isConnected)return;
+     pending=false;play.disabled=false;
+     label.textContent=tr("Повторити завантаження відео","Retry loading video");
+    }
+   });
+   slot.classList.remove("is-loading-media");
+   slot.classList.add("is-ready-media");
+   slot.replaceChildren(play);
+   return;
+  }
+  const priority=++firstImages;
+  let begun=false;
+  async function load(){
+   if(begun)return;begun=true;
+   try{
+    const src=await signed(client,"image",path);
+    if(!slot.isConnected)return;
+    const image=new Image();
+    image.className="feed-post-media-image ui-feed-post-media-image-001";
+    image.alt=tr("Фото до публікації","Post photo");
+    image.decoding="async";image.loading="eager";
+    if(priority<=2)image.fetchPriority="high";
+    await loadImageSource(image,src);
+    if(!slot.isConnected)return;
+    const frame=document.createElement("button");
+    frame.className="vt-feed-post-media-open-001";frame.type="button";
+    frame.setAttribute("aria-label",tr("Відкрити фото на весь екран","View photo fullscreen"));
+    frame.addEventListener("click",()=>openFullMedia(src,"image"));
+    frame.append(image);
+    slot.replaceChildren(frame);slot.classList.remove("is-loading-media");
+    slot.classList.add("is-ready-media");
+   }catch(_){failure(tr("Медіафайл тимчасово недоступний.","Media temporarily unavailable."));}
+  }
+  function failure(message){
+   if(!slot.isConnected)return;
+   slot.classList.remove("is-loading-media");
+   const notice=document.createElement("p");
+   notice.className="vt-feed-post-media-error-001";notice.textContent=message;
+   slot.replaceChildren(notice);
+  }
+  if(priority<=2||typeof IntersectionObserver==="undefined")void load();
+  else{
+   const observer=new IntersectionObserver(entries=>{
+    if(entries.some(entry=>entry.isIntersecting)){observer.disconnect();void load();}
+   },{rootMargin:"440px 0px",threshold:0});
+   observer.observe(slot);
+  }
+ }
+ window.VATRA_POST_MEDIA={bindPicker,bindGalleryPicker,validateGallery,upload,uploadGallery,removeGallery,uploadStory,remove,mount,renderStory,linkifyHashtags,collapsibleBody,signed};
+})();

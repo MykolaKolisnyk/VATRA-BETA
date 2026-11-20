@@ -1,0 +1,25 @@
+{
+  "name": "VATRA БЕТА — ранній доступ",
+  "short_name": "VATRA БЕТА",
+  "description": "Ранній доступ до української соціальної мережі VATRA.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "lang": "uk",
+  "icons": [
+    {
+      "src": "assets/logo/vatra-app-icon.png",
+      "sizes": "360x360",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "assets/logo/vatra-app-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

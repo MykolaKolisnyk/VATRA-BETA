@@ -1,0 +1,91 @@
+.error-page{
+  min-height:100vh;
+  min-height:100dvh;
+  display:grid;
+  place-items:center;
+  overflow-x:hidden;
+  color:var(--ink);
+  background:#c5d9fa;
+  background:radial-gradient(ellipse 60% 65% at 50% 45%,#aac9f7 0%,#bdd4f8 58%,#d3e2fc 100%);
+}
+.error-main{
+  display:grid;
+  place-items:center;
+  width:100%;
+  min-height:100vh;
+  min-height:100dvh;
+  margin:0 auto;
+  padding:clamp(20px,4vw,52px) 20px;
+  text-align:center;
+}
+.error-content{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  width:min(100%,680px);
+  gap:8px;
+}
+.error-main .ui-404-vatryk-001{
+  display:block;
+  flex:none;
+  width:min(540px,85vw,67dvh);
+  height:auto;
+  margin-bottom:-6px;
+  object-fit:contain;
+  object-position:center;
+  user-select:none;
+  -webkit-user-select:none;
+  -webkit-user-drag:none;
+  animation:vatraAuthReveal .3s cubic-bezier(.2,.75,.2,1) both;
+}
+.error-home-link{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:9px;
+  min-height:48px;
+  padding:12px 25px;
+  border:1px solid #2865d8;
+  border-radius:999px;
+  background:#2865d8;
+  box-shadow:0 8px 22px rgba(40,101,216,.18);
+  color:#fff;
+  font-size:14px;
+  font-weight:700;
+  line-height:1.35;
+  text-decoration:none;
+  transition:background .18s ease,transform .18s ease,box-shadow .18s ease;
+}
+.error-home-link::before{content:"←";font-size:19px;line-height:1;font-weight:500}
+.error-home-link:hover{
+  background:#1d51b9;
+  box-shadow:0 11px 26px rgba(40,101,216,.24);
+  color:#fff;
+  text-decoration:none;
+}
+.error-home-link:active{transform:translateY(1px)}
+.error-home-link:focus-visible{outline:3px solid rgba(40,101,216,.4);outline-offset:3px}
+@media(max-width:540px){
+  .error-main{padding:24px 16px}
+  .error-main .ui-404-vatryk-001{width:min(430px,90vw,62dvh)}
+  .error-home-link{min-height:44px;padding:10px 20px;font-size:13px}
+}
+@media(max-height:560px){
+  .error-main .ui-404-vatryk-001{width:min(540px,78vw,57dvh)}
+  .error-content{gap:10px}
+}
+@media(prefers-reduced-motion:reduce){
+  .error-main .ui-404-vatryk-001{animation:none!important}
+}
+
+@media(max-width:600px){
+ .error-page,.error-main{min-height:100svh}
+ .error-main{padding:16px 12px calc(16px + env(safe-area-inset-bottom,0px))}
+ .error-content{gap:4px;max-width:440px}
+ .error-main .ui-404-vatryk-001{width:min(92vw,390px,61svh);margin-bottom:-5px}
+ .error-home-link{min-height:48px;font-size:14px}
+}
+@media(max-width:600px) and (max-height:450px){
+ .error-main .ui-404-vatryk-001{width:min(74vw,50svh)}
+}
