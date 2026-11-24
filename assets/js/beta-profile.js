@@ -158,7 +158,7 @@ function lockUI(){
  posts.replaceChildren();
  const card=document.createElement("article");
  card.className="beta-member-count";
- card.innerHTML='<h2 class="beta-count-heading">Зареєстровано користувачів</h2><output class="beta-count-value" id="beta-member-total" aria-live="polite" aria-label="Кількість зареєстрованих користувачів VATRA">—</output><p class="beta-count-description vt-beta-count-description-001">Успіх <a class="beta-count-link vt-beta-count-link-001" href="https://vatra.com.co/">VATRA</a> напряму залежить від Вас та Вашої активності.</p><div class="beta-count-actions"><button class="beta-count-share" id="beta-count-share" type="button"><svg class="ui-beta-count-share-icon-001" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle class="ui-beta-share-top-001" cx="18" cy="5" r="3"/><circle class="ui-beta-share-left-001" cx="6" cy="12" r="3"/><circle class="ui-beta-share-bottom-001" cx="18" cy="19" r="3"/><path class="ui-beta-share-lines-001" d="m8.6 10.5 6.8-4M8.6 13.5l6.8 4"/></svg><span class="vt-beta-count-share-001">Запросити друзів</span></button><input class="beta-count-share-link" type="url" value="https://vatra.com.co/" readonly hidden aria-label="Посилання для запрошення"><p class="beta-count-share-feedback" role="status" hidden></p></div>';
+ card.innerHTML='<h2 class="beta-count-heading">Зареєстровано користувачів</h2><output class="beta-count-value" id="beta-member-total" aria-live="polite" aria-label="Кількість зареєстрованих користувачів VATRA">—</output><p class="beta-count-description vt-beta-count-description-001">Успіх <a class="beta-count-link vt-beta-count-link-001" href="https://vatrasocial.com/">VATRA</a> напряму залежить від Вас та Вашої активності.</p><div class="beta-count-actions"><button class="beta-count-share" id="beta-count-share" type="button"><svg class="ui-beta-count-share-icon-001" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle class="ui-beta-share-top-001" cx="18" cy="5" r="3"/><circle class="ui-beta-share-left-001" cx="6" cy="12" r="3"/><circle class="ui-beta-share-bottom-001" cx="18" cy="19" r="3"/><path class="ui-beta-share-lines-001" d="m8.6 10.5 6.8-4M8.6 13.5l6.8 4"/></svg><span class="vt-beta-count-share-001">Запросити друзів</span></button><input class="beta-count-share-link" type="url" value="https://vatrasocial.com/" readonly hidden aria-label="Посилання для запрошення"><p class="beta-count-share-feedback" role="status" hidden></p></div>';
  postsHeading.before(card);
  const share=card.querySelector(".beta-count-share");
  const shareLink=card.querySelector(".beta-count-share-link");
@@ -169,7 +169,7 @@ function lockUI(){
   sharing=true;
   feedback.hidden=true;
   shareLink.hidden=true;
-  const url="https://vatra.com.co/";
+  const url="https://vatrasocial.com/";
   try{
    if(typeof navigator.share==="function"){
     try{
