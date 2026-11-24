@@ -1,0 +1,11 @@
+# Preserve clean URLs and profile IDs on Cloudflare Pages.
+/feed /profile 302
+/friends /profile 302
+/communities /profile 302
+/club /profile 302
+/gifts /profile 302
+/notifications /profile 302
+/terms / 302
+/privacy / 302
+/cookies / 302
+/id* /profile 200

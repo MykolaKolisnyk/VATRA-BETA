@@ -2,6 +2,10 @@
 <html lang="uk">
   <head>
     <meta charset="utf-8">
+    <base href="/">
+    <script>
+      if(!/^\/(?:profile(?:\.html)?|id[1-9][0-9]{0,18})\/?$/.test(location.pathname))location.replace("/404");
+    </script>
     <script src="assets/js/host.js"></script>
 
     <script src="assets/js/lang.js"></script>

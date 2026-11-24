@@ -5,14 +5,12 @@
  const path=location.pathname;
 
  const appRoot=new URL("../../",document.currentScript.src).pathname;
- const preview=location.protocol==="https:"&&
-  appRoot!=="/"&&path.startsWith(appRoot);
  const customHost=location.hostname==="vatrasocial.com";
  const custom=location.protocol==="https:"&&customHost;
 
  const insecureCustom=location.protocol==="http:"&&customHost;
  const local=/^(localhost|127\.0\.0\.1)$/.test(location.hostname)&&/^(http:|https:)$/.test(location.protocol);
- const allowed=preview||custom||local;
+ const allowed=(custom||local)&&appRoot==="/";
  window.VATRA_HOST_ALLOWED=allowed;
  if(allowed){
 
