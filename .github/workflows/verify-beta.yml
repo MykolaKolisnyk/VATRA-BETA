@@ -2,6 +2,8 @@ name: Verify VATRA-BETA
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 permissions:
   contents: read
@@ -27,7 +29,11 @@ jobs:
           grep -Fq 'https://cxrcycxrlkufozomsxcs.supabase.co' assets/js/beta-profile.js
           grep -Fq 'sb_publishable_oKypZDxi8PP1oxSylfh5wQ_H6HxeM-i' assets/js/auth-core.js
           grep -Fq 'sb_publishable_oKypZDxi8PP1oxSylfh5wQ_H6HxeM-i' assets/js/beta-profile.js
-          test "$(cat CNAME)" = "vatra.com.co"
+          test "$(cat CNAME)" = "vatrasocial.com"
+          ! grep -RFl "vatra.com.co" assets/ email-templates/ --include="*.js" --include="*.css" --include="*.html"
+          ! grep -Fl "vatra.com.co" ./*.html sitemap.xml
+          grep -Fq 'https://vatrasocial.com/verify?token_hash=' email-templates/confirmation.html
+          grep -Fq 'https://vatrasocial.com/forgot' email-templates/password-changed.html
       - name: Verify HTML assets exist
         run: |
           node <<'JS'
@@ -43,6 +49,7 @@ jobs:
           console.log("All local linked HTML assets exist.");
           JS
   browser:
+    if: github.event_name != 'pull_request'
     needs: static
     runs-on: ubuntu-latest
     timeout-minutes: 14
@@ -74,7 +81,7 @@ jobs:
               try{
                 const page=await context.newPage(),pageErrors=[];
                 page.on("pageerror",error=>pageErrors.push(error.message));
-                const url="https://vatra.com.co/"+route;
+                const url="https://vatrasocial.com/"+route;
                 const response=await page.goto(url,{waitUntil:"domcontentloaded",timeout:35000});
                 assert(response,"No response for "+url);
                 await page.waitForFunction(name=>document.body?.dataset?.page===name,expected,{timeout:25000});
