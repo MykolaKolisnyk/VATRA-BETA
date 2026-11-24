@@ -7,7 +7,15 @@
  const appRoot=new URL("../../",document.currentScript.src).pathname;
  const preview=location.protocol==="https:"&&
   appRoot!=="/"&&path.startsWith(appRoot);
- const customHost=location.hostname==="vatra.com.co";
+ const customHost=location.hostname==="vatrasocial.com";
+ if(location.hostname==="www.vatrasocial.com"){
+  const canonical=new URL("https://vatrasocial.com/");
+  canonical.pathname=location.pathname;
+  canonical.search=location.search;
+  canonical.hash=location.hash;
+  location.replace(canonical.href);
+  return;
+ }
  const custom=location.protocol==="https:"&&customHost;
 
  const insecureCustom=location.protocol==="http:"&&customHost;
@@ -51,7 +59,7 @@
   copy.textContent=insecureCustom?
    "Домен підключено, але сторінку відкрито без захищеного з’єднання. Вхід і реєстрація будуть доступні після активації HTTPS.":
    "Відкрийте тестову версію на офіційній адресі VATRA.";
-  const link=document.createElement("a");link.href="https://vatra.com.co/";
+  const link=document.createElement("a");link.href="https://vatrasocial.com/";
   link.textContent=insecureCustom?"Спробувати захищену адресу":"Перейти до VATRA БЕТА";
   card.append(title,copy,link);document.body.append(card);
  });
