@@ -8,7 +8,9 @@
  const preview=location.protocol==="https:"&&
   appRoot!=="/"&&path.startsWith(appRoot);
  const customHost=location.hostname==="vatrasocial.com";
- if(location.hostname==="www.vatrasocial.com"){
+ if(["vatra.com.co","www.vatra.com.co","www.vatrasocial.com"].includes(location.hostname)){
+  window.VATRA_HOST_ALLOWED=false;
+  document.documentElement.setAttribute("data-vatra-denied","");
   const canonical=new URL("https://vatrasocial.com/");
   canonical.pathname=location.pathname;
   canonical.search=location.search;

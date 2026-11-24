@@ -27,7 +27,35 @@ jobs:
           grep -Fq 'https://cxrcycxrlkufozomsxcs.supabase.co' assets/js/beta-profile.js
           grep -Fq 'sb_publishable_oKypZDxi8PP1oxSylfh5wQ_H6HxeM-i' assets/js/auth-core.js
           grep -Fq 'sb_publishable_oKypZDxi8PP1oxSylfh5wQ_H6HxeM-i' assets/js/beta-profile.js
-          test "$(cat CNAME)" = "vatrasocial.com"
+          # GitHub Pages serves the legacy domain; production is on Cloudflare.
+          test "$(cat CNAME)" = "vatra.com.co"
+      - name: Test legacy domain redirect
+        run: |
+          node <<'JS'
+          const assert=require("node:assert/strict");
+          const fs=require("node:fs");
+          const vm=require("node:vm");
+          const code=fs.readFileSync("assets/js/host.js","utf8");
+          function run(href){
+            const location=new URL(href);
+            let target=null;
+            location.replace=url=>{target=url};
+            const window={};
+            const document={currentScript:{src:new URL("/assets/js/host.js",location).href},documentElement:{setAttribute(){}}};
+            vm.runInNewContext(code,{URL,location,document,window,history:{replaceState(){}}});
+            return {target,allowed:window.VATRA_HOST_ALLOWED};
+          }
+          for(const host of ["vatra.com.co","www.vatra.com.co","www.vatrasocial.com"]){
+            for(const suffix of ["/","/profile","/verify?token_hash=demo&type=email#example","/reset?code=demo","//example.org/path"]){
+              const result=run("https://"+host+suffix);
+              assert.equal(result.target,"https://vatrasocial.com"+suffix);
+              assert.equal(result.allowed,false);
+            }
+          }
+          assert.equal(run("https://vatrasocial.com/").allowed,true);
+          assert.equal(run("https://vatrasocial.com/").target,null);
+          console.log("Legacy redirects preserve paths, queries and fragments.");
+          JS
       - name: Verify HTML assets exist
         run: |
           node <<'JS'

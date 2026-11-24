@@ -6,7 +6,7 @@
     <script>
       (()=>{
         const pathname=location.pathname;
-        const root=/^(?:www\.)?vatrasocial\.com$/.test(location.hostname)?"/":
+        const root=/^(?:www\.)?(?:vatrasocial\.com|vatra\.com\.co)$/.test(location.hostname)?"/":
           pathname.slice(0,pathname.lastIndexOf("/")+1)||"/";
         const base=document.createElement("base");
         base.href=root;
